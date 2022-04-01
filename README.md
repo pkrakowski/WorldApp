@@ -9,9 +9,9 @@
 
 ##### 1. [Azure IaaS and PaaS - Set up hosting environment and deploy the code with Terraform and Ansible (Non-containerized deployment)](https://github.com/pkrakowski/WorldApp/tree/main/Deployments/VMs/direct)
 
-##### 2. [Multicontainer application on a single host - Develop, build, test and deploy with Docker Compose](https://github.com/pkrakowski/WorldApp/tree/main/Deployments/Compose)
+##### 2. [Multi-container application on a single host - Develop, build, test and deploy with Docker Compose](https://github.com/pkrakowski/WorldApp/tree/main/Deployments/Compose)
 
-##### 3. [Multicontainer application on Kubernetes - Develop, build, test and deploy with Helm and Skaffold](https://github.com/pkrakowski/WorldApp/tree/main/Deployments/Kubernetes)
+##### 3. [Multi-container application on Kubernetes - Develop, build, test and deploy with Helm and Skaffold](https://github.com/pkrakowski/WorldApp/tree/main/Deployments/Kubernetes)
 
 ##### 4. [Bring it all together with Azure DevOps YAML pipeline](https://github.com/pkrakowski/WorldApp/blob/main/aks-azure-pipeline.yml)
 
