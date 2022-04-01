@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>WorldApp</title>
+{% endblock %}
+
+{% block body %}
+{% if admin_mode == True %}
+  <br>
+  <h1>Admin Panel</h1>
+  <br>
+  <br>
+  <div>
+    <b><p style="text-align: center;">Upload data from CSV:</p></b><a href="/admin/upload" class="btn btn-danger" role="button">Upload</a>
+  </div>
+  <br>
+  <br>
+  <br>
+  <br>
+  <a href="/" class="btn btn-danger" role="button">Home</a>
+  <a href="/admin/logout" class="btn btn-danger" role="button">Log Out</a>
+
+{% else %}
+  <br>
+  <h1>Enter admin credentials</h1>
+  <br>
+  <form action="/admin/" method="post">
+    <input type="text" placeholder="Username" name="username" value="{{
+      request.form.username }}">
+    <input type="password" placeholder="Password" name="password" value="{{
+      request.form.password }}">
+    <input class="btn btn-info" type="submit" value="Login">
+  </form>
+    <br>
+{% endif %}
+
+{{ message }}
+
+{% endblock %}

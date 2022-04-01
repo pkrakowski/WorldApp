@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>WorldApp</title>
+{% endblock %}
+
+{% block body %}
+<br>
+<br>
+<h1>{{ result.country }}</h1>
+<br>
+
+  {% if result.population != 0 %}
+    <p><b>Population:</b> {{ "{:,}".format(result.population) }}</p>
+  {% endif %}
+
+  {% if result.gdp != '0' %}
+    <p><b>GDP:</b> {{ "${:,}".format(result.gdp) }}</p>
+  {% endif %}
+
+  {% if result.area != 0 %}
+    <p><b>Area:</b> {{ "{:,}".format(result.area) }} 	&#13218;</p>
+  {% endif %}
+  <br>
+    <img id="flag" class="img-fluid" alt="flag" src="{{ static_host }}/static/flags/{{ result.code }}-flag.gif" onerror="this.src='{{ static_host }}/static/flags/missing-flag.gif'">
+  <br>
+  <hr>
+  <a href="/" class="btn btn-danger" role="button">Back</a>
+{% endblock %}

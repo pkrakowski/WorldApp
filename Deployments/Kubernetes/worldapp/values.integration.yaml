@@ -1,0 +1,30 @@
+#Set Docker Images to deploy
+clientImage: pkrakowski/worldapp-client:set_by_pipeline
+apiImage: pkrakowski/worldapp-api:set_by_pipeline
+adminImage: pkrakowski/worldapp-admin:set_by_pipeline
+
+microservices:
+  targetPort: 80
+
+#SECRETS
+#Outside of testing you should set these when invoking helm install with --set or a different secure way
+secret:
+  mysql_root_password: mysqlrootpassword
+  mysql_user: mysqluser
+  mysql_password: mysqlpassword
+  admin_user: adminuser
+  admin_password: adminpassword
+
+#TLS secret
+#crt:
+#key:
+
+
+#If set true database PVC will be deleted, default is Keep
+pvcDelete: True
+
+#Define hostname, if False responds to *
+#hostname: demo.example.com
+
+#Set True if deploying to AKS with AGIC Ingress
+#deployWithAGIC: True

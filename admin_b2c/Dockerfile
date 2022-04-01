@@ -1,0 +1,36 @@
+FROM ubuntu:20.04 AS requirements
+
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends build-essential gcc libmysqlclient-dev python3-pip python3-dev
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+FROM ubuntu:20.04
+#Copy required packages
+COPY --from=requirements /usr/local/lib/python3.8/dist-packages /usr/local/lib/python3.8/dist-packages
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+#Install required packages
+RUN apt-get update && apt-get install -y tzdata apache2 libapache2-mod-wsgi-py3 libmysqlclient21
+#Copy apache configuration file and enable virtual host
+COPY ./WorldApp.conf /etc/apache2/sites-available/
+RUN a2enmod headers
+RUN a2ensite WorldApp.conf
+RUN a2dissite 000-default.conf
+#Copy application files to the container
+WORKDIR /var/www/admin
+COPY . .
+#Give Apache permissions to write data to /uploaded folder
+RUN chmod 770 uploaded & chown -R root:www-data uploaded
+#Bring web server logs to container outputs
+RUN ln -sf /dev/stdout /var/log/apache2/access.log \
+    && ln -sf /dev/stderr /var/log/apache2/error.log
+
+#Cleanup root directory.
+#Unrelated Note: Deleted files can still be accessed from earlier layers so don't copy secrets into your containers!
+#If you require secret during the build process make sure to preform all actions and remove all secrets within a single layer.
+RUN rm WorldApp.conf *Dockerfile* init.sh sshd_config requirements.txt
+
+EXPOSE 80
+ENTRYPOINT ["apachectl", "-D", "FOREGROUND"]

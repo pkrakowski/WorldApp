@@ -1,0 +1,38 @@
+- hosts: bastion
+  become: true
+
+  vars_files:
+    - "inventory/group_vars/ansible_vault.yaml"
+
+  pre_tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+  tasks:
+    - name: Install MySQL client package for python
+      apt:
+        name:
+          - python3-pymysql
+        state: present
+        install_recommends: no
+
+    - name: Create a new database on remote host
+      mysql_db:
+        name: world
+        state: present
+        login_user: "{{ mysql_root_user }}"
+        login_password: "{{ mysql_root_password }}"
+        login_host: "{{ mysql_host }}"
+
+    - name: Create database user on remote host
+      mysql_user:
+        name: mysqluser
+        password: "{{ mysql_user_password }}"
+        priv: "world.*:ALL"
+        state: present
+        host: "%"
+        login_user: "{{ mysql_root_user }}"
+        login_password: "{{ mysql_root_password }}"
+        login_host: "{{ mysql_host }}"

@@ -1,0 +1,47 @@
+{{ if not .Values.deployWithAGIC }}
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-service-{{ .Release.Name }}
+  annotations:
+    kubernetes.io/ingress.class: 'nginx'
+    nginx.ingress.kubernetes.io/use-regex: 'true'
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  {{ if .Values.hostname }}
+  tls:
+  - hosts:
+    - {{ .Values.hostname }}
+    secretName: ingress-tls-{{ .Release.Name }}
+  rules:
+    - host: {{ .Values.hostname }}
+      http:
+  {{ else }}
+  rules:
+    - http:
+  {{ end }}
+        paths:
+          - path: /?(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: client-cluster-ip-{{ .Release.Name }}
+                port:
+                  number: 80
+          - path: /api/?(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: api-cluster-ip-{{ .Release.Name }}
+                port:
+                  number: 80
+          - path: /admin/?(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-cluster-ip-{{ .Release.Name }}
+                port:
+                  number: 80
+
+{{ end }}

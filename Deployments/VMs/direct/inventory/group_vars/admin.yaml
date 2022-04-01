@@ -1,0 +1,11 @@
+service_type: admin
+virtual_host_file: WorldApp.conf
+
+#Additional packages to install
+additional_packages:
+- libmysqlclient21
+- build-essential
+- libmysqlclient-dev
+- python3-dev
+- unzip
+

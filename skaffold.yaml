@@ -1,0 +1,51 @@
+apiVersion: skaffold/v2beta12
+kind: Config
+deploy:
+  helm:
+    releases:
+      - name: worldapp-dev
+        namespace: development
+        createNamespace: true
+        chartPath: Deployments/Kubernetes/worldapp
+        artifactOverrides:
+          clientImage: pkrakowski/worldapp-client
+          apiImage: pkrakowski/worldapp-api
+          adminImage: pkrakowski/worldapp-admin
+        valuesFiles:
+          - ./Deployments/Kubernetes/worldapp/values.skaffold.dev.yaml
+build:
+  local:
+    push: false
+  artifacts:
+    - image: pkrakowski/worldapp-client
+      context: client
+      docker:
+        dockerfile: Dockerfile.dev
+      sync:
+        manual:
+          - src: "**/*.py"
+            dest: .
+          - src: "**/*.css"
+            dest: .
+          - src: "**/*.html"
+            dest: .
+    - image: pkrakowski/worldapp-admin
+      context: admin
+      docker:
+        dockerfile: Dockerfile.dev
+      sync:
+        manual:
+          - src: "**/*.py"
+            dest: .
+          - src: "**/*.css"
+            dest: .
+          - src: "**/*.html"
+            dest: .
+    - image: pkrakowski/worldapp-api
+      context: api
+      docker:
+        dockerfile: Dockerfile.dev
+      sync:
+        manual:
+          - src: "**/*.py"
+            dest: .

@@ -1,0 +1,15 @@
+FROM ubuntu:20.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
+RUN apt-get update && apt-get install -y tzdata python3-dev build-essential libmysqlclient-dev python3-pip
+
+WORKDIR /var/www/api
+COPY ./requirements.txt .
+RUN pip3 install -r requirements.txt
+COPY . .
+
+EXPOSE 5000
+#Local Dev
+CMD ["python3", "app.py", "flask", "run", "-h", "0.0.0.0", "-p", "5000"]

@@ -1,0 +1,77 @@
+#Spins up a environment with HTTPD servers for 'api', 'client' and 'admin' microservices
+
+version: '3'
+services:
+
+  client:
+    restart: on-failure
+    image: pkrakowski/worldapp-client
+    environment:
+      - STATIC_HOST=${STATIC_HOST}
+      - API_URL=http://api
+    depends_on:
+      mysql_server:
+        condition: service_healthy
+
+  api:
+    restart: on-failure
+    image: pkrakowski/worldapp-api
+    environment:
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_HOST=${MYSQL_HOST}
+      - MYSQL_DBNAME=${MYSQL_DBNAME}
+      - CACHE_TYPE=${CACHE_TYPE}
+      - CACHE_REDIS_URL=${CACHE_REDIS_URL}
+    depends_on:
+      mysql_server:
+        condition: service_healthy
+
+  admin:
+    restart: on-failure
+    image: pkrakowski/worldapp-admin
+    environment:
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_HOST=${MYSQL_HOST}
+      - MYSQL_DBNAME=${MYSQL_DBNAME}
+      - ADMIN_USER=${ADMIN_USER}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
+    depends_on:
+      mysql_server:
+        condition: service_healthy
+
+  mysql_server:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: on-failure
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DBNAME}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    volumes:
+      - mysqldata_volume:/var/lib/mysql
+
+  redis:
+    image: redis
+    restart: always
+
+  router:
+    restart: always
+    build:
+      context: ./router
+      dockerfile: Dockerfile
+    ports:
+      - '80:80'
+    depends_on:
+      - api
+      - client
+
+volumes:
+    mysqldata_volume:

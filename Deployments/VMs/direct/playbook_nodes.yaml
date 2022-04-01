@@ -1,0 +1,86 @@
+- hosts: nodes
+  become: true
+
+  vars:
+    root_directory: /var/www
+
+  vars_files:
+    - "inventory/group_vars/ansible_vault.yaml"
+
+  roles:
+    - apache2_mod_wsgi
+
+  tasks:
+    - name: Install additional packages
+      apt:
+        name: "{{ additional_packages }}"
+        state: present
+        install_recommends: no
+      notify: restart apache
+
+    - name: Copy source
+      copy:
+        src: ../../../{{ service_type }}
+        dest: "{{ root_directory }}"
+
+    ##- name: Get source files from the blob
+    #  unarchive:
+    #    src: "{{ download_url }}"
+    #    dest: "{{ root_directory }}"
+    #    remote_src: yes
+    #  notify: reload apache
+
+    - name: Install python requirements
+      pip:
+        requirements: "{{ root_directory }}/{{ service_type }}/requirements.txt"
+      notify: reload apache
+
+    - name: Copy virtual host config
+      copy:
+        src: "{{ root_directory }}/{{ service_type }}/{{ virtual_host_file }}"
+        dest: /etc/apache2/sites-available/{{ virtual_host_file }}
+        remote_src: yes
+      notify: restart apache
+
+    - name: Config files to delete
+      find:
+        paths: "{{ root_directory }}/{{ service_type }}"
+        file_type: file
+        patterns:
+          - "*Dockerfile*"
+          - "init.sh"
+          - "sshd_config"
+          - "requirements.txt"
+          - "{{ virtual_host_file }}"
+      register: files_to_delete
+      tags:
+        - debug
+
+    - name: Remove config files from web root
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      with_items: "{{ files_to_delete.files }}"
+      tags:
+        - debug
+
+    - name: Enable Virtual Host
+      command: a2ensite {{ virtual_host_file }}
+      args:
+        creates: /etc/apache2/sites-enabled/{{ virtual_host_file }}
+      notify: restart apache
+
+    - name: Set Apache envvars using a template
+      template:
+        src: templates/envvars.j2
+        dest: /etc/apache2/envvars
+      notify: restart apache
+
+    - name: Set permissions for 'uploaded' folder on Admin nodes
+      file:
+        dest: "{{ root_directory }}/{{ service_type }}/uploaded"
+        owner: root
+        group: www-data
+        mode: 0770
+      when: service_type == "admin"
+

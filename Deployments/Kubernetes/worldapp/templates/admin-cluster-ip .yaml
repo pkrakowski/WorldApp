@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-cluster-ip-{{ .Release.Name }}
+spec:
+  type: ClusterIP
+  selector:
+    component: admin-{{ .Release.Name }}
+  ports:
+    - port: 80
+      targetPort: {{ .Values.microservices.targetPort }}

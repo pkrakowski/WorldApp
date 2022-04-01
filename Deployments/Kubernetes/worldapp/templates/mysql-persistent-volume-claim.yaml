@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  {{ if not .Values.pvcDelete }}
+  annotations:
+    "helm.sh/resource-policy": keep
+  {{- end }}
+  name: mysql-persistent-volume-claim-{{ .Release.Name }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

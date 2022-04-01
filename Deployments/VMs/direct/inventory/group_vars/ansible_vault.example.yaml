@@ -1,0 +1,10 @@
+#MySQL
+mysql_user: mysqluser
+mysql_user_password: userpassword
+mysql_root_password: H@Sh1CoR3!
+mysql_dbname: world
+
+#Admin Portal
+admin_username: admin
+admin_password: adminpassword
+secret_key: setrandomlongstring

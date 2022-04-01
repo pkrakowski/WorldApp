@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-deployment-{{ .Release.Name }}
+spec:
+  replicas: {{.Values.adminPods | default 1 }}
+  selector:
+    matchLabels:
+      component: admin-{{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        component: admin-{{ .Release.Name }}
+    spec:
+      containers:
+        - name: admin-{{ .Release.Name }}
+          image: "{{.Values.adminImage}}"
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 3
+          env:
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: worldapp-secrets-{{ .Release.Name }}
+                  key: MYSQL_USER
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: worldapp-secrets-{{ .Release.Name }}
+                  key: MYSQL_PASSWORD
+            - name: MYSQL_HOST
+              value: mysql-cluster-ip-{{ .Release.Name }}
+            - name: MYSQL_DBNAME
+              value: world
+            - name: ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: worldapp-secrets-{{ .Release.Name }}
+                  key: ADMIN_USER
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: worldapp-secrets-{{ .Release.Name }}
+                  key: ADMIN_PASSWORD
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: worldapp-secrets-{{ .Release.Name }}
+                  key: SECRET_KEY
+          ports:
+            - containerPort: 80

@@ -1,0 +1,36 @@
+#Set Docker Images to deploy and number of replica pods
+#clientImage: pkrakowski/worldapp-client:latest
+#clientPods: 3 #defaults to 1
+
+#apiImage: pkrakowski/worldapp-api:latest
+#apiPods: 3 #defaults to 1
+
+#adminImage: pkrakowski/worldapp-admin:latest
+#adminPods: 1 #defaults to 1
+
+#Backend port for microservices
+#microservices:
+#  targetPort: 80
+#
+#SECRETS
+#For any production workload you should set these when invoking helm install with --set
+#secret:
+#  mysql_root_password: 
+#  mysql_user: 
+#  mysql_password:
+#  admin_user: 
+#  admin_password:
+#
+#TLS secret
+#crt:
+#key:
+#
+#
+#If set true database PVC will be deleted, default is Keep
+#pvcDelete: True
+#
+#Define hostname, if False responds to *
+#hostname: example.com
+#
+#Set True if deploying to AKS with AGIC Ingress
+#deployWithAGIC: True

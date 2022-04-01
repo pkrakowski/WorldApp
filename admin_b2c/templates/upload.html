@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>WorldApp</title>
+{% endblock %}
+
+{% block body %}
+<h1>Upload CSV</h1>
+<br>
+<form method="POST" action="" enctype="multipart/form-data">
+  <div class="form-group">
+    <p><input type="file" name="file" class="btn btn-outline-danger">
+    <button type="submit" class="btn btn-danger">Upload</button></p>
+  </div>
+</form>
+<br>
+<a href="/admin/" class="btn btn-danger" role="button">Admin</a>
+{% endblock %}

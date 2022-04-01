@@ -1,0 +1,303 @@
+trigger:
+  batch: false
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: Build
+    jobs:
+      #-----------------------------------------------------------------------------------------
+      - job: SetTag
+        steps:
+          - script: |
+              SOURCE_SHA=$(git rev-parse HEAD)
+              echo "##vso[task.setvariable variable=SOURCE_SHA;isOutput=true;]$SOURCE_SHA"
+              echo $SOURCE_SHA > SOURCE_SHA
+            displayName: "Output SOURCE_SHA"
+            name: SetTag
+      #-----------------------------------------------------------------------------------------
+      - job: Build_Client
+        dependsOn: SetTag
+        variables:
+          SOURCE_SHA: $[ dependencies.SetTag.outputs['SetTag.SOURCE_SHA'] ]
+        steps:
+          - script: docker build -t pkrakowski/worldapp-client -t pkrakowski/worldapp-client:$(SOURCE_SHA) ./client
+            displayName: "Build Client image"
+          - task: Docker@2
+            inputs:
+              containerRegistry: "Docker Hub"
+              command: "login"
+            displayName: "Login to Docker Hub"
+          - script: |
+              docker push pkrakowski/worldapp-client:latest
+              docker push pkrakowski/worldapp-client:$(SOURCE_SHA)
+            displayName: "Push Client image to Docker Hub"
+      #-----------------------------------------------------------------------------------------
+      - job: Build_API
+        dependsOn: SetTag
+        variables:
+          SOURCE_SHA: $[ dependencies.SetTag.outputs['SetTag.SOURCE_SHA'] ]
+        steps:
+          - script: docker build -t pkrakowski/worldapp-api -t pkrakowski/worldapp-api:$(SOURCE_SHA) ./api
+            displayName: "Build API image"
+          - task: Docker@2
+            inputs:
+              containerRegistry: "Docker Hub"
+              command: "login"
+            displayName: "Login to Docker Hub"
+          - script: |
+              docker push pkrakowski/worldapp-api:latest
+              docker push pkrakowski/worldapp-api:$(SOURCE_SHA)
+            displayName: "Push Client image to Docker Hub"
+      #-----------------------------------------------------------------------------------------
+      - job: Build_Admin
+        dependsOn: SetTag
+        variables:
+          SOURCE_SHA: $[ dependencies.SetTag.outputs['SetTag.SOURCE_SHA'] ]
+        steps:
+          - script: docker build -t pkrakowski/worldapp-admin -t pkrakowski/worldapp-admin:$(SOURCE_SHA) ./admin
+            displayName: "Build Admin image"
+          - task: Docker@2
+            inputs:
+              containerRegistry: "Docker Hub"
+              command: "login"
+            displayName: "Login to Docker Hub"
+          - script: |
+              docker push pkrakowski/worldapp-admin:latest
+              docker push pkrakowski/worldapp-admin:$(SOURCE_SHA)
+            displayName: "Push Admin image to Docker Hub"
+  - stage: TEST
+    variables:
+      SOURCE_SHA: $[ stageDependencies.Build.SetTag.outputs['SetTag.SOURCE_SHA'] ]
+    jobs:
+      - deployment: Test
+        environment: Test
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                #---------------------------------------------------------------------------------------------
+                - script: |
+                    wget https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+                    chmod +x ./minikube-linux-amd64
+                    mv ./minikube-linux-amd64 /usr/local/bin/minikube
+                    minikube start --driver=docker
+                  displayName: "Install and start Minikube"
+                #---------------------------------------------------------------------------------------------
+                - script: |
+                    curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+                    chmod +x ./kubectl
+                    mv ./kubectl /usr/local/bin/kubectl
+                    kubectl version -o json
+                  displayName: "Install Kubectl"
+                #---------------------------------------------------------------------------------------------
+                - script: |
+                    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+                    chmod 700 get_helm.sh
+                    ./get_helm.sh
+                  displayName: "Install Helm"
+                #---------------------------------------------------------------------------------------------
+                - script: |
+                    minikube addons enable ingress
+                  displayName: "Enable Nginx Ingress"
+                - script: sleep 120
+                  displayName: "Wait for Ingress to stablilize"
+                #---------------------------------------------------------------------------------------------
+                - script: |
+                    ls -alh
+                    echo "Deploying tag $(SOURCE_SHA)"
+                    helm upgrade --install --wait \
+                    worldapp-mini worldapp \
+                    --values worldapp/values.integration.yaml \
+                    --set clientImage=pkrakowski/worldapp-client:$(SOURCE_SHA) \
+                    --set apiImage=pkrakowski/worldapp-api:$(SOURCE_SHA) \
+                    --set adminImage=pkrakowski/worldapp-admin:$(SOURCE_SHA)
+                  workingDirectory: "$(System.DefaultWorkingDirectory)/Deployments/Kubernetes"
+                  displayName: "Deploy WorldApp"
+
+                - script: sleep 30
+                  displayName: "Wait for deployment to stabilize"
+                #---------------------------------------------------------------------------------------------
+                - script: |
+                    kubectl get deployments
+                    kubectl describe deployments
+                  displayName: "Describe deployments"
+                #---------------------------------------------------------------------------------------------
+                - script: |
+                    export KUBE_IP=$(minikube ip)
+                    python3 -m unittest discover
+                  displayName: "Run tests"
+
+  - stage: QA
+    dependsOn:
+      - Build
+      - TEST
+    variables:
+      SOURCE_SHA: $[ stageDependencies.Build.SetTag.outputs['SetTag.SOURCE_SHA'] ]
+    jobs:
+      - deployment: QA
+        environment: QA
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                #---------------------------------------------------------------------------------------------
+                - script: |
+                    curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+                    chmod +x ./kubectl
+                    mv ./kubectl /usr/local/bin/kubectl
+                  displayName: "Install Kubectl"
+                #---------------------------------------------------------------------------------------------
+                - script: |
+                    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+                    chmod 700 get_helm.sh
+                    ./get_helm.sh
+                  displayName: "Install Helm"
+                #---------------------------------------------------------------------------------------------
+                - task: AzureCLI@2
+                  inputs:
+                    azureSubscription: 'AzureAKSQAConnection'
+                    scriptType: 'bash'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      export ARM_SUBSCRIPTION_ID=$(az account show | jq -r '.id')
+                      export ARM_CLIENT_ID=$servicePrincipalId
+                      export ARM_CLIENT_SECRET=$servicePrincipalKey
+                      export ARM_TENANT_ID=$tenantId
+                      terraform init  \
+                      -backend-config="resource_group_name=$(tf_backend_rg)" \
+                      -backend-config="storage_account_name=$(tf_backend_sa)" \
+                      -backend-config="container_name=$(tf_backend_container)" \
+                      -backend-config="key=qa.terraform.tfstate"
+                      terraform apply -auto-approve -var 'resource_group_name=AKSQA'
+                      az aks get-credentials --name $(terraform output -raw aks_name)  --resource-group $(terraform output -raw aks_rg)
+                    addSpnToEnvironment: true
+                    workingDirectory: '$(System.DefaultWorkingDirectory)/Deployments/TerraformAKS'
+                  displayName: "Deploy QA infrastructure"
+
+                #---------------------------------------------------------------------------------------------
+                - script: |
+                    echo "Deploying tag $(SOURCE_SHA)"
+                    helm upgrade --install --wait \
+                    worldapp-qa worldapp \
+                    --values worldapp/values.aks.qa.yaml \
+                    --set clientImage=pkrakowski/worldapp-client:$(SOURCE_SHA) \
+                    --set apiImage=pkrakowski/worldapp-api:$(SOURCE_SHA) \
+                    --set adminImage=pkrakowski/worldapp-admin:$(SOURCE_SHA)
+                  workingDirectory: "$(System.DefaultWorkingDirectory)/Deployments/Kubernetes"
+                  displayName: "Deploy WorldApp"
+
+  - stage: PlanPROD
+    dependsOn:
+      - Build
+      - QA
+    jobs:
+      - job: PlanPROD
+        steps:
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: "AzureAKSPRODConnection"
+              addSpnToEnvironment: true
+              scriptType: "bash"
+              scriptLocation: "inlineScript"
+              inlineScript: |
+                export ARM_SUBSCRIPTION_ID=$(az account show | jq -r '.id')
+                export ARM_CLIENT_ID=$servicePrincipalId
+                export ARM_CLIENT_SECRET=$servicePrincipalKey
+                export ARM_TENANT_ID=$tenantId
+
+                terraform init  \
+                -backend-config="resource_group_name=$(tf_backend_rg)" \
+                -backend-config="storage_account_name=$(tf_backend_sa)" \
+                -backend-config="container_name=$(tf_backend_container)" \
+                -backend-config="key=prod.terraform.tfstate"
+
+                terraform plan -var 'resource_group_name=AKSPROD' -out=prod_tfplan
+              workingDirectory: "$(System.DefaultWorkingDirectory)/Deployments/TerraformAKS"
+            displayName: "Plan changes to PROD infrastructure"
+          #---------------------------------------------------------------------------------------------
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: "$(System.DefaultWorkingDirectory)/Deployments/TerraformAKS/prod_tfplan"
+              artifact: "plan"
+              publishLocation: "pipeline"
+            displayName: "Publish PROD plan"
+
+  - stage: PROD
+    variables:
+      SOURCE_SHA: $[ stageDependencies.Build.SetTag.outputs['SetTag.SOURCE_SHA'] ]
+    dependsOn:
+      - Build
+      - PlanPROD
+    jobs:
+      - deployment: PROD
+        environment: PROD
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                #---------------------------------------------------------------------------------------------
+                - script: |
+                    curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+                    chmod +x ./kubectl
+                    mv ./kubectl /usr/local/bin/kubectl
+                  displayName: "Install Kubectl"
+                #---------------------------------------------------------------------------------------------
+                - script: |
+                    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+                    chmod 700 get_helm.sh
+                    ./get_helm.sh
+                  displayName: "Install Helm"
+                #---------------------------------------------------------------------------------------------
+                - task: DownloadPipelineArtifact@2
+                  inputs:
+                    artifact: "plan"
+                    path: "$(System.DefaultWorkingDirectory)/Deployments/TerraformAKS"
+                  displayName: "Download PROD plan"
+                #---------------------------------------------------------------------------------------------
+                - task: AzureCLI@2
+                  inputs:
+                    azureSubscription: "AzureAKSPRODConnection"
+                    addSpnToEnvironment: true
+                    scriptType: "bash"
+                    scriptLocation: "inlineScript"
+                    inlineScript: |
+                      export ARM_SUBSCRIPTION_ID=$(az account show | jq -r '.id')
+                      export ARM_CLIENT_ID=$servicePrincipalId
+                      export ARM_CLIENT_SECRET=$servicePrincipalKey
+                      export ARM_TENANT_ID=$tenantId
+                      terraform init  \
+                      -backend-config="resource_group_name=$(tf_backend_rg)" \
+                      -backend-config="storage_account_name=$(tf_backend_sa)" \
+                      -backend-config="container_name=$(tf_backend_container)" \
+                      -backend-config="key=prod.terraform.tfstate"
+
+                      terraform apply "prod_tfplan"
+
+                      az aks get-credentials --name $(terraform output -raw aks_name)  --resource-group $(terraform output -raw aks_rg)
+                    workingDirectory: "$(System.DefaultWorkingDirectory)/Deployments/TerraformAKS"
+                  displayName: "Update PROD infrastructure, if changes"
+                #---------------------------------------------------------------------------------------------
+                - task: DownloadSecureFile@1
+                  name: prodValues
+                  inputs:
+                    secureFile: "values.aks.prod.yaml"
+                  displayName: "Download PROD values for Helm"
+                #---------------------------------------------------------------------------------------------
+                - script: |
+                    echo "Deploying tag $(SOURCE_SHA)"
+                    helm upgrade --install --wait \
+                    worldapp-prod worldapp \
+                    --values $(prodValues.secureFilePath) \
+                    --set clientImage=pkrakowski/worldapp-client:$(SOURCE_SHA) \
+                    --set apiImage=pkrakowski/worldapp-api:$(SOURCE_SHA) \
+                    --set adminImage=pkrakowski/worldapp-admin:$(SOURCE_SHA)
+                  workingDirectory: "$(System.DefaultWorkingDirectory)/Deployments/Kubernetes"
+                  displayName: "Deploy new version of WorldApp to PROD"

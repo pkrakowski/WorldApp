@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>WorldApp</title>
+{% endblock %}
+
+{% block body %}
+<br>
+<br>
+<img src="/static/WorldApp_logo.png" class="rounded mx-auto d-block" alt="WorldApp">
+<br>
+<h1>Setup</h1>
+<p><b>{{ message }}</b></p>
+<br>
+<p><b>{{ err }}</b></p>
+<a href="/admin/" class="btn btn-danger" role="button">Admin</a>
+<a href="/" class="btn btn-danger" role="button">Home</a>
+
+
+{% endblock %}

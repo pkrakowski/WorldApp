@@ -1,0 +1,23 @@
+{{ if .Values.deployWithAGIC }}
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-service-client-{{ .Release.Name }}
+  annotations:
+    kubernetes.io/ingress.class: azure/application-gateway
+    appgw.ingress.kubernetes.io/backend-path-prefix: "/"
+    appgw.ingress.kubernetes.io/health-probe-path: "/health"
+spec:
+  rules:
+  - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: client-cluster-ip-{{ .Release.Name }}
+                port:
+                  number: 80
+
+{{ end }}

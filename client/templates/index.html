@@ -1,0 +1,77 @@
+{%- extends 'base.html' -%}
+
+{%- block head -%}
+<title>WorldApp</title>
+{%- endblock -%}
+
+{%- block body -%}
+
+<br>
+<br>
+<img src="{{ static_host }}/static/WorldApp_logo.png" class="img-fluid" alt="WorldApp" id="logo">
+
+<hr>
+<h2>What country are you looking for?</h2>
+<br>
+
+<form action="/" method="POST" accept-charset="ISO-8859-1">
+  <div class="form-group">
+    <input type="text" class="form-control" name="search_query" id="search_query" aria-describedby="emailHelp" list="countries_list">
+    <small id="emailHelp" class="form-text text-muted">{{ result }}</small>
+    <datalist id="countries_list">
+      {%- for countries in country_list -%}
+        {%- for country in countries -%}
+          <option value="{{ country }}">
+        {%- endfor -%}
+      {%- endfor -%}
+  </div>
+  <button type="submit" class="btn btn-primary">Search</button>
+</form>
+
+
+<div class="accordion" id="Alpha">
+    <div class="card">
+      <div class="card-header" id="Letters">
+        <h2 class="mb-0">
+          <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#AllLetters" aria-expanded="true" aria-controls="AllLetters">
+            Show all avalible countries
+          </button>
+        </h2>
+      </div>
+
+      <div id="AllLetters" class="collapse" aria-labelledby="Letters" data-parent="#Alpha">
+        <div class="card-body">
+            {%- for letter in letters -%}
+            <div class="accordion" id="Letter{{ letter }}">
+                <div class="card">
+                  <div class="card-header" id="{{ letter }}">
+                    <h5 class="mb-0">
+                      <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#Collapse{{ letter }}" aria-expanded="true" aria-controls="Collapse{{ letter }}">
+                        {{ letter }}
+                      </button>
+                    </h5>
+                  </div>
+                  <div id="Collapse{{ letter }}" class="collapse" aria-labelledby="{{ letter }}" data-parent="#Letter{{ letter }}">
+                    <div class="card-body">
+                        {%- for countries in country_list -%}
+                          {%- for country in countries -%}
+                            {%- if country.startswith(letter) -%}
+                            <form action='/' method="POST">
+                              <input type='submit' value='{{ country }}' name="search_query" id="search_query" title="country_link">
+                            </form>
+                            {%- endif -%}
+                          {%- endfor -%}
+                        {%- endfor -%}
+                    </div>
+                  </div>
+                </div>
+            </div>
+            {%- endfor -%}
+        </div>
+      </div>
+    </div>
+
+
+
+
+{%- endblock -%}

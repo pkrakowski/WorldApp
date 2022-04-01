@@ -1,0 +1,6 @@
+service_type: client
+virtual_host_file: WorldApp.conf
+
+#Additional packages to install
+additional_packages:
+- unzip

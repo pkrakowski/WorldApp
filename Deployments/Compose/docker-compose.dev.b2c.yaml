@@ -1,0 +1,104 @@
+#Spins up complete dev enviroment which uses Flask development servers for 'api', 'client' and 'admin_b2c' microservices
+#To be used for a local development and test
+version: '3'
+services:
+
+  mysql_server:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: on-failure
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DBNAME}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    #volumes:
+    #Optional volume to make database data persistent
+    #  - dev_mysql_volume:/var/lib/mysql
+    #Optional volumes used to enable gerneral_log and mount log file to the local machine
+    #  - ./mysql_dev/mysql_log.cnf:/etc/mysql/conf.d/mysql_log.cnf
+    # - ./mysql_dev/mysql.log:/var/log/mysql/mysql.log
+
+  client:
+    restart: always
+    build:
+      context: ../../client
+      dockerfile: Dockerfile.dev
+    volumes:
+    #Maps local folder for live code updates inside the container
+      - ../../client:/var/www/client/
+    depends_on:
+      mysql_server:
+        condition: service_healthy
+    environment:
+      - STATIC_HOST=${STATIC_HOST}
+      - API_URL=http://api:5000
+
+  api:
+    restart: always
+    build:
+      context: ../../api
+      dockerfile: Dockerfile.dev
+    volumes:
+    #Maps local folder for live code updates inside the container
+      - ../../api:/var/www/api/
+    depends_on:
+      mysql_server:
+        condition: service_healthy
+    environment:
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_HOST=${MYSQL_HOST}
+      - MYSQL_DBNAME=${MYSQL_DBNAME}
+      - CACHE_TYPE=${CACHE_TYPE}
+      - CACHE_REDIS_URL=${CACHE_REDIS_URL}
+
+
+  admin:
+    restart: always
+    build:
+      context: ../../admin_b2c
+      dockerfile: Dockerfile.dev
+    volumes:
+    #Maps local folder for live code updates inside the container
+      - ../../admin_b2c:/var/www/admin/
+    depends_on:
+      mysql_server:
+        condition: service_healthy
+    environment:
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_HOST=${MYSQL_HOST}
+      - MYSQL_DBNAME=${MYSQL_DBNAME}
+      - SECRET_KEY=${SECRET_KEY}
+      - B2CTENANT=${B2CTENANT}
+      - CLIENT_ID=${CLIENT_ID}
+      - CLIENT_SECRET=${CLIENT_SECRET}
+      - REDIRECT_URL=${REDIRECT_URL}
+      - ADMIN_ID=${ADMIN_ID}
+
+  adminer:
+    image: adminer
+    restart: always
+
+  redis:
+    image: redis
+    restart: always
+
+  router:
+    restart: always
+    build:
+      context: ./router
+      dockerfile: Dockerfile.dev
+    ports:
+      - '80:80'
+    depends_on:
+      - api
+      - client
+
+volumes:
+    dev_mysql_volume:

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-deployment-{{ .Release.Name }}
+spec:
+  replicas: {{.Values.apiPods | default 1 }}
+  selector:
+    matchLabels:
+      component: api-{{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        component: api-{{ .Release.Name }}
+    spec:
+      containers:
+        - name: api-{{ .Release.Name }}
+          image: "{{.Values.apiImage}}"
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 3
+          env:
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: worldapp-secrets-{{ .Release.Name }}
+                  key: MYSQL_USER
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: worldapp-secrets-{{ .Release.Name }}
+                  key: MYSQL_PASSWORD
+            - name: MYSQL_HOST
+              value: mysql-cluster-ip-{{ .Release.Name }}
+            - name: MYSQL_DBNAME
+              value: world
+            - name: CACHE_TYPE
+              value: redis
+            - name: CACHE_REDIS_URL
+              value: redis://redis-cluster-ip-{{ .Release.Name }}:6379/0
+          ports:
+            - containerPort: 80

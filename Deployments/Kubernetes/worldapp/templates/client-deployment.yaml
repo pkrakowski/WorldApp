@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client-deployment-{{ .Release.Name }}
+spec:
+  replicas: {{.Values.clientPods | default 1 }}
+  selector:
+    matchLabels:
+      component: client-{{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        component: client-{{ .Release.Name }}
+    spec:
+      containers:
+        - name: client-{{ .Release.Name }}
+          image: "{{.Values.clientImage}}"
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 3
+          env:
+            - name: STATIC_HOST
+              value:
+            - name: API_URL
+              value: http://api-cluster-ip-{{ .Release.Name }}
+          ports:
+            - containerPort: 80

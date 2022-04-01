@@ -1,0 +1,34 @@
+#Set Docker Images to deploy, leave tag 'latest' - Skaffold manages
+clientImage: pkrakowski/worldapp-client:latest
+clientPods: 1
+
+apiImage: pkrakowski/worldapp-api:latest
+apiPods: 1
+
+adminImage: pkrakowski/worldapp-admin:latest
+adminPods: 3
+
+microservices:
+  targetPort: 5000
+
+#SECRETS
+#Outside of testing you should set these when invoking helm install with --set or a different secure way
+secret:
+  mysql_root_password: mysqlrootpassword
+  mysql_user: mysqluser
+  mysql_password: mysqlpassword
+  admin_user: adminuser
+  admin_password: adminpassword
+
+#TLS secret
+#crt:
+#key:
+
+#If set true database PVC will be deleted, default is Keep
+pvcDelete: True
+
+#Define hostname, if False responds to *
+#hostname:
+
+#Set True if deploying to AKS with AGIC Ingress
+#deployWithAGIC: False
