@@ -1,8 +1,8 @@
 #### Azure B2C Integration
 
-The majority of deployments use Admin service with Basic Login. If you'd like to play with B2C you'll need to deploy a new Azure B2C tenant to your environment.
+The majority of deployments use Admin service with Basic logon. If you'd like to play with B2C you'll need to create a new Azure B2C tenant.
 
-To register and configure follow these guides in order:
+Below Microsoft docs will walk you through the steps of creating the tenant and registering the application:
 
 https://docs.microsoft.com/en-us/azure/active-directory-b2c/tutorial-create-tenant
 
@@ -18,7 +18,7 @@ CLIENT_ID=
 CLIENT_SECRET=
 REDIRECT_URL=
 ```
-At the end of the tutorial, you will be creating an account. Once that's done get its Object ID and pass it to the container with env ADMIN_ID=[] this assigns Admin privileges to the account to upload sample data. For any real deployments you'll probably want to move this to the database and updated logic to pull it from there.
+At the end of the tutorial, you will be creating a new account. Once that's done get its Object ID and pass it to the container using ADMIN_ID=[] env. This assigns Admin privileges to the account to access Admin portal. For any real deployments you'll probably want to move this to the database and updated logic to pull it from there.
 
 
 
