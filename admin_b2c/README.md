@@ -1,6 +1,6 @@
 #### Azure B2C Integration
 
-The majority of deployments use Admin service with Basic logon. If you'd like to play with B2C you'll need to create a new Azure B2C tenant.
+The majority of deployments use Admin service with Basic logon. If you'd like to try using B2C for authentication instead you'll need to create a new Azure B2C tenant.
 
 Below Microsoft docs will walk you through the steps of creating the tenant and registering the application:
 
