@@ -7,13 +7,13 @@
 
 #### This repository holds source files for a simple web app which consists of three microservices as well as instructions and config files for deploying it and other required components to different environments using multiple methods and tools. It mostly serves as my "Here's a quick reminder" repo but if someone stumbles upon it feel free to use it as an inspiration and a starting point for building your own flows.
 
-##### 1. [Deploy directly to VMs. IaC with Terraform and Ansible (Non-contenerized deployment)](https://github.com/pkrakowski/WorldApp/tree/main/Deployments/VMs/direct)
+##### 1. [Azure IaaS and PaaS - Set up hosting environment and deploy the code with Terraform and Ansible (Non-containerized deployment)](https://github.com/pkrakowski/WorldApp/tree/main/Deployments/VMs/direct)
 
-##### 2. [Deploy to a single host with Docker Compose](https://github.com/pkrakowski/WorldApp/tree/main/Deployments/Compose)
+##### 2. [Multicontainer application on a single host - Develop, build, test and deploy with Docker Compose](https://github.com/pkrakowski/WorldApp/tree/main/Deployments/Compose)
 
-##### 3. [Deploy to a Kubernetes cluster with Helm](https://github.com/pkrakowski/WorldApp/tree/main/Deployments/Kubernetes)
+##### 3. [Multicontainer application on Kubernetes - Develop, build, test and deploy with Helm and Skaffold](https://github.com/pkrakowski/WorldApp/tree/main/Deployments/Kubernetes)
 
-##### 4. [Deploy to AKS through a complete Azure DevOps YAML pipeline](https://github.com/pkrakowski/WorldApp/blob/main/aks-azure-pipeline.yml)
+##### 4. [Bring it all together with Azure DevOps YAML pipeline](https://github.com/pkrakowski/WorldApp/blob/main/aks-azure-pipeline.yml)
 
 
 ```
@@ -24,7 +24,7 @@
     4)      planPROD:   Creates Terraform Plan for any changes to the PROD infrastructure.
     5)      PROD:       (On Approval): Deploys a new version of Docker images to PROD, if any changes to Terraform config were made updates AKS PROD* infrastructure with the prior approved Plan.
 
-    *QA and PROD AKS environments utilize AGIC instead of NGINX Ingress and are built with the exact same Terraform config.
+    *QA and PROD AKS environments utilize AGIC ingress controller and are set up with the exact same Terraform config, on the first run it will spin up the QA and PROD environment from scratch.
 ```
 Terraform configs for deploying AKS cluster can be found [in this folder](https://github.com/pkrakowski/WorldApp/tree/main/Deployments/TerraformAKS)
 
